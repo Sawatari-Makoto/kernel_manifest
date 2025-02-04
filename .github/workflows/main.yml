@@ -23,7 +23,7 @@ jobs:
       - name: Initialize Repo
         run: |
           mkdir kernel_platform && cd kernel_platform
-          repo init -u https://github.com/your-username/kernel-manifest-test -b main -m manifest.xml
+          repo init -u https://github.com/wanwei1028/kernel_manifest/blob/main/oneplus_13.xml -b main -m manifest.xml
           repo sync -j$(nproc) --force-sync
 
       - name: Validate Symbolic Links
