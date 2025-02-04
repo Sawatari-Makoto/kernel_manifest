@@ -23,17 +23,17 @@ jobs:
       - name: Initialize Repo
         run: |
           mkdir kernel_platform && cd kernel_platform
-          repo init -u https://github.com/wanwei1028/kernel_manifest/blob/main/oneplus_13.xml -b main -m manifest.xml
+          repo init -u https://github.com/wanwei1028/kernel_manifest.git -b main -m oneplus_13.xml
           repo sync -j$(nproc) --force-sync
 
       - name: Validate Symbolic Links
         run: |
           cd kernel_platform
-          # 检查关键符号链接是否存在
-          [ -L WORKSPACE ] && echo "WORKSPACE link exists" || exit 1
-          [ -L build_with_bazel.py ] && echo "build_with_bazel.py link exists" || exit 1
+          [ -L WORKSPACE ] || { echo "❌ WORKSPACE link missing"; exit 1; }
+          [ -L build_with_bazel.py ] || { echo "❌ build_with_bazel.py link missing"; exit 1; }
+          echo "✅ All symbolic links are valid"
 
-      - name: Build Check (可选)
+      - name: Dry-Run Build (Optional)
         run: |
           cd kernel_platform
           python build_with_bazel.py --config=sm8750 --dry-run
