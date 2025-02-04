@@ -20,19 +20,21 @@ jobs:
           chmod a+rx ~/bin/repo
           echo "$HOME/bin" >> $GITHUB_PATH
 
+      - name: Clean Existing Directories
+        run: |
+          rm -rf kernel_platform
+
       - name: Initialize Repo
         run: |
-          mkdir kernel_platform && cd kernel_platform
           repo init -u https://github.com/wanwei1028/kernel_manifest.git -b main -m oneplus_13.xml
           repo sync -j$(nproc) --force-sync
 
       - name: Debug Directory Structure
         run: |
-          cd kernel_platform
-          echo "=== kernel_platform/ ==="
+          echo "=== 根目录结构 ==="
           ls -l
           echo "=== kernel_platform/msm-kernel/ ==="
-          ls -l msm-kernel/
+          ls -l kernel_platform/msm-kernel/
 
       - name: Validate Symbolic Links
         run: |
@@ -42,8 +44,3 @@ jobs:
           [ "$(readlink WORKSPACE)" = "msm-kernel/bazel.WORKSPACE" ] || { echo "❌ WORKSPACE link target mismatch"; exit 1; }
           [ "$(readlink build_with_bazel.py)" = "msm-kernel/build_with_bazel.py" ] || { echo "❌ build_with_bazel.py link target mismatch"; exit 1; }
           echo "✅ All symbolic links are valid"
-
-      - name: Dry-Run Build (Optional)
-        run: |
-          cd kernel_platform
-          python build_with_bazel.py --config=sm8750 --dry-run
