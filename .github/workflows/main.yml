@@ -26,11 +26,21 @@ jobs:
           repo init -u https://github.com/wanwei1028/kernel_manifest.git -b main -m oneplus_13.xml
           repo sync -j$(nproc) --force-sync
 
+      - name: Debug Directory Structure
+        run: |
+          cd kernel_platform
+          echo "=== kernel_platform/ ==="
+          ls -l
+          echo "=== kernel_platform/msm-kernel/ ==="
+          ls -l msm-kernel/
+
       - name: Validate Symbolic Links
         run: |
           cd kernel_platform
           [ -L WORKSPACE ] || { echo "❌ WORKSPACE link missing"; exit 1; }
           [ -L build_with_bazel.py ] || { echo "❌ build_with_bazel.py link missing"; exit 1; }
+          [ "$(readlink WORKSPACE)" = "msm-kernel/bazel.WORKSPACE" ] || { echo "❌ WORKSPACE link target mismatch"; exit 1; }
+          [ "$(readlink build_with_bazel.py)" = "msm-kernel/build_with_bazel.py" ] || { echo "❌ build_with_bazel.py link target mismatch"; exit 1; }
           echo "✅ All symbolic links are valid"
 
       - name: Dry-Run Build (Optional)
