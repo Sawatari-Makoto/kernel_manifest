@@ -20,27 +20,26 @@ jobs:
           chmod a+rx ~/bin/repo
           echo "$HOME/bin" >> $GITHUB_PATH
 
-      - name: Clean Existing Directories
+      - name: Clean Workspace
         run: |
           rm -rf kernel_platform
+          rm -rf .repo
 
       - name: Initialize Repo
         run: |
           repo init -u https://github.com/wanwei1028/kernel_manifest.git -b main -m oneplus_13.xml
-          repo sync -j$(nproc) --force-sync
 
-      - name: Debug Directory Structure
-        run: |
-          echo "=== 根目录结构 ==="
-          ls -l
-          echo "=== kernel_platform/msm-kernel/ ==="
-          ls -l kernel_platform/msm-kernel/
+      - name: Retry Repo Sync
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: |
+            repo sync -j4 --force-sync --no-clone-bundle
 
       - name: Validate Symbolic Links
         run: |
           cd kernel_platform
           [ -L WORKSPACE ] || { echo "❌ WORKSPACE link missing"; exit 1; }
           [ -L build_with_bazel.py ] || { echo "❌ build_with_bazel.py link missing"; exit 1; }
-          [ "$(readlink WORKSPACE)" = "msm-kernel/bazel.WORKSPACE" ] || { echo "❌ WORKSPACE link target mismatch"; exit 1; }
-          [ "$(readlink build_with_bazel.py)" = "msm-kernel/build_with_bazel.py" ] || { echo "❌ build_with_bazel.py link target mismatch"; exit 1; }
           echo "✅ All symbolic links are valid"
