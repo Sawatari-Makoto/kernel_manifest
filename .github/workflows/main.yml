@@ -1,0 +1,39 @@
+name: Test Kernel Manifest
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate-manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Repo Tool
+        run: |
+          mkdir -p ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+rx ~/bin/repo
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Initialize Repo
+        run: |
+          mkdir kernel_platform && cd kernel_platform
+          repo init -u https://github.com/your-username/kernel-manifest-test -b main -m manifest.xml
+          repo sync -j$(nproc) --force-sync
+
+      - name: Validate Symbolic Links
+        run: |
+          cd kernel_platform
+          # 检查关键符号链接是否存在
+          [ -L WORKSPACE ] && echo "WORKSPACE link exists" || exit 1
+          [ -L build_with_bazel.py ] && echo "build_with_bazel.py link exists" || exit 1
+
+      - name: Build Check (可选)
+        run: |
+          cd kernel_platform
+          python build_with_bazel.py --config=sm8750 --dry-run
