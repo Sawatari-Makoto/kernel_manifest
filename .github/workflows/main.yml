@@ -27,8 +27,9 @@ jobs:
         run: |
           mkdir -p kernel_build
           cd kernel_build
-          repo init -u https://github.com/wanwei1028/kernel_manifest.git -b main
+          repo init -u https://github.com/wanwei1028/kernel_manifest.git -b main -m oneplus_13.xml
           repo sync -j$(nproc)
+          
 
       - name: 设置编译环境
         run: |
