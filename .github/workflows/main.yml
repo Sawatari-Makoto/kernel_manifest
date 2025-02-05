@@ -1,45 +1,67 @@
-name: Test Kernel Manifest
+name: Kernel Build Test
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  validate-manifest:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: Install Repo Tool
+      - name: 安装必要工具
         run: |
-          mkdir -p ~/bin
-          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
-          chmod a+rx ~/bin/repo
-          echo "$HOME/bin" >> $GITHUB_PATH
+          sudo apt update
+          sudo apt install -y repo git build-essential bc libssl-dev flex bison \
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+            clang lld llvm
 
-      - name: Clean Workspace
+      - name: 初始化 repo 并同步代码
         run: |
-          rm -rf kernel_platform
-          rm -rf .repo
+          mkdir -p kernel_build
+          cd kernel_build
+          repo init -u https://github.com/你的GitHub用户名/你的Manifest仓库.git -b main
+          repo sync -j$(nproc)
 
-      - name: Initialize Repo
+      - name: 设置编译环境
         run: |
-          repo init -u https://github.com/wanwei1028/kernel_manifest.git -b main -m oneplus_13.xml
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          export CLANG_PATH=$(pwd)/kernel_build/kernel_platform/prebuilts/clang/host/linux-x86/bin
+          export PATH=$CLANG_PATH:$PATH
 
-      - name: Retry Repo Sync
-        uses: nick-fields/retry@v3
+      - name: 编译 OnePlus 13 (SM8750) 内核
+        run: |
+          cd kernel_build/kernel_platform/msm-kernel
+          make O=out oneplus_defconfig
+          make O=out -j$(nproc)
+
+      - name: 检查编译结果
+        run: |
+          if [ -f kernel_build/kernel_platform/msm-kernel/out/arch/arm64/boot/Image.gz-dtb ]; then
+            echo "✅ 内核编译成功！"
+          else
+            echo "❌ 内核编译失败！请检查日志。" && exit 1
+          fi
+
+      - name: 生成 boot.img
+        run: |
+          cd kernel_build/kernel_platform/tools/mkbootimg
+          ./mkbootimg --kernel ../msm-kernel/out/arch/arm64/boot/Image.gz-dtb \
+                      --ramdisk path_to_ramdisk \
+                      --dtb path_to_dtb \
+                      --cmdline "console=ttyMSM0,115200n8" \
+                      -o boot.img
+
+      - name: 上传编译的 boot.img
+        uses: actions/upload-artifact@v4
         with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            repo sync -j4 --force-sync --no-clone-bundle
-
-      - name: Validate Symbolic Links
-        run: |
-          cd kernel_platform
-          [ -L WORKSPACE ] || { echo "❌ WORKSPACE link missing"; exit 1; }
-          [ -L build_with_bazel.py ] || { echo "❌ build_with_bazel.py link missing"; exit 1; }
-          echo "✅ All symbolic links are valid"
+          name: boot-image
+          path: kernel_build/kernel_platform/tools/mkbootimg/boot.img
