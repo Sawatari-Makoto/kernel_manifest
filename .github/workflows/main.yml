@@ -27,7 +27,7 @@ jobs:
         run: |
           mkdir -p kernel_build
           cd kernel_build
-          repo init -u https://github.com/你的GitHub用户名/你的Manifest仓库.git -b main
+          repo init -u https://github.com/wanwei1028/kernel_manifest.git -b main
           repo sync -j$(nproc)
 
       - name: 设置编译环境
