@@ -1,30 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest>
+  <!-- 远程仓库定义 -->
   <remote fetch="https://git.codelinaro.org/clo/la" name="clo-la"/>
-  <remote fetch="https://github.com/OnePlusOSS" name="oneplus"/>
+  <remote fetch="https://github.com/OnePlusOSS" name="origin"/>
 
-  <!-- 统一默认remote为oneplus，显式覆盖需要clo-la的项目 -->
-  <default remote="oneplus" revision="oneplus/sm8750_v_15.0.0_oneplus_13" sync-c="true" sync-tags="true"/>
+  <!-- 默认远程仓库 -->
+  <default remote="clo-la" revision="oneplus/sm8750_v_15.0.0_oneplus_13" sync-c="true" sync-tags="false"/>
 
-  <!-- OnePlus 13 内核 -->
-  <project name="android_kernel_common_oneplus_sm8750" path="kernel_platform/common"/>
-  <project name="android_kernel_oneplus_sm8750" path="kernel_platform/msm-kernel"/>
-  <project name="android_kernel_modules_and_devicetree_oneplus_sm8750" path="kernel_platform/modules_and_devicetree"/>
+  <!-- OnePlus 13 (SM8750) 内核 -->
+  <project remote="origin" name="android_kernel_common_oneplus_sm8750.git"
+           path="kernel_platform/common"
+           revision="oneplus/sm8750_v_15.0.0_oneplus_13"/>
+           
+  <project remote="origin" name="android_kernel_oneplus_sm8750.git"
+           path="kernel_platform/msm-kernel"
+           revision="oneplus/sm8750_v_15.0.0_oneplus_13"/>
+           
+  <project remote="origin" name="android_kernel_modules_and_devicetree_oneplus_sm8750.git"
+           path="kernel_platform/modules_and_devicetree"
+           revision="oneplus/sm8750_v_15.0.0_oneplus_13"/>
 
-  <!-- 预编译工具（显式指定clo-la） -->
-  <project remote="clo-la" name="kernel_platform/prebuilts/clang/host/linux-x86" 
-           path="kernel_platform/prebuilts/clang/host/linux-x86" 
-           revision="android-15-clang-17-update"/>
-  <project remote="clo-la" name="kernel_platform/prebuilts/jdk/jdk17" 
-           path="kernel_platform/prebuilts/jdk/jdk17" 
-           revision="android-15-jdk17-update"/>
-  <project remote="clo-la" name="kernel_platform/prebuilts/bazel/linux-x86_64" 
-           path="kernel_platform/prebuilts/bazel/linux-x86_64" 
-           revision="android-15-bazel-7.0-update"/>
-  <project remote="clo-la" name="kernel_platform/toolchain/prebuilts/ndk/r25" 
-           path="kernel_platform/toolchain/prebuilts/ndk/r25" 
-           revision="android-15-ndk-r25-update"/>
-  <project remote="clo-la" name="kernel_platform/system/tools/mkbootimg" 
-           path="kernel_platform/system/tools/mkbootimg" 
-           revision="android-15-mkbootimg-update"/>
+  <!-- 最新 Clang 18 编译器 -->
+  <project remote="clo-la" name="kernel_platform/prebuilts/clang/host/linux-x86.git"
+           path="kernel_platform/prebuilts/clang/host/linux-x86"
+           revision="android-15-clang-18-update" clone-depth="1"/>
+
+  <!-- 最新 JDK 21 -->
+  <project remote="clo-la" name="kernel_platform/prebuilts/jdk/jdk21.git"
+           path="kernel_platform/prebuilts/jdk/jdk21"
+           revision="android-15-jdk21-update" clone-depth="1"/>
+
+  <!-- 最新 NDK r26 -->
+  <project remote="clo-la" name="kernel_platform/toolchain/prebuilts/ndk/r26.git"
+           path="kernel_platform/prebuilts/ndk-r26"
+           revision="android-15-ndk-r26-update" clone-depth="1"/>
+
+  <!-- 最新 Bazel 7.2 -->
+  <project remote="clo-la" name="kernel_platform/prebuilts/bazel/linux-x86_64.git"
+           path="kernel_platform/prebuilts/bazel/linux-x86_64"
+           revision="android-15-bazel-7.2-update" clone-depth="1"/>
+
+  <!-- 最新 mkbootimg -->
+  <project remote="clo-la" name="kernel_platform/system/tools/mkbootimg.git"
+           path="kernel_platform/tools/mkbootimg"
+           revision="android-15-mkbootimg-update" clone-depth="1"/>
 </manifest>
