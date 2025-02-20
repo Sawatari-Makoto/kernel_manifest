@@ -1,0 +1,116 @@
+name: Kernel Build (Simple)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  CLANG_COMMIT: 477610d4d0d988e69dbc3fae4fe86bff3f07f2b5
+  CLANG_VERSION: clang-18.0.0-r510928
+  CROSS_COMPILE: aarch64-linux-android-
+  ARCH: arm64
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+
+    steps:
+    - name: Checkout Kernel Sources
+      uses: actions/checkout@v4
+      with:
+        repository: OnePlusOSS/android_kernel_oneplus_sm8750
+        path: kernel
+        ref: oneplus/sm8750_v_15.0.0_oneplus_13
+
+    - name: Checkout Modules & DT
+      uses: actions/checkout@v4
+      with:
+        repository: OnePlusOSS/android_kernel_modules_and_devicetree_oneplus_sm8750
+        path: modules_dt
+        ref: oneplus/sm8750_v_15.0.0_oneplus_13
+
+    - name: Checkout Common
+      uses: actions/checkout@v4
+      with:
+        repository: OnePlusOSS/android_kernel_common_oneplus_sm8750
+        path: common
+        ref: oneplus/sm8750_v_15.0.0_oneplus_13
+
+    - name: Setup Directory Structure
+      run: |
+        mkdir -p kernel_platform
+        mv kernel kernel_platform/msm-kernel
+        mv common kernel_platform/common
+        mv modules_dt/* kernel_platform/
+        ls -alh kernel_platform/
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          bc bison build-essential ccache flex git kmod libelf-dev \
+          libssl-dev lz4 lzma make python3-dev libxml2-dev libomp-dev \
+          ninja-build
+
+    - name: Download Toolchain
+      run: |
+        mkdir -p prebuilts/clang/host/linux-x86
+        wget -qO clang.tar.gz "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/$CLANG_COMMIT/${CLANG_VERSION}.tar.gz"
+        tar -xzf clang.tar.gz -C prebuilts/clang/host/linux-x86/
+        
+        # 验证工具链完整性
+        echo "=== Toolchain Info ==="
+        prebuilts/clang/host/linux-x86/bin/clang --version
+        file prebuilts/clang/host/linux-x86/bin/clang
+        echo "====================="
+
+    - name: Patch Kernel Source
+      run: |
+        cd kernel_platform/msm-kernel
+        # 修复Clang 18兼容性问题
+        sed -i 's/-Werror=implicit-function-declaration//' Makefile
+        sed -i 's/CLANG_VERSION = .*/CLANG_VERSION = 180000/' Makefile
+
+    - name: Build Configuration
+      run: |
+        cd kernel_platform/msm-kernel
+        make O=out ARCH=$ARCH CC=clang \
+          CLANG_TRIPLE=aarch64-linux-gnu- \
+          CROSS_COMPILE=$CROSS_COMPILE \
+          LLVM=1 \
+          LLVM_IAS=1 \
+          vendor/sm8750-perf_defconfig
+
+    - name: Compile Kernel
+      run: |
+        cd kernel_platform/msm-kernel
+        make -j$(nproc) O=out ARCH=$ARCH CC=clang \
+          CLANG_TRIPLE=aarch64-linux-gnu- \
+          CROSS_COMPILE=$CROSS_COMPILE \
+          LLVM=1 \
+          LD=ld.lld \
+          NM=llvm-nm \
+          AR=llvm-ar \
+          STRIP=llvm-strip \
+          KCFLAGS="-Wno-unused-command-line-argument -Wno-deprecated-non-prototype" \
+          KBUILD_BUILD_TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+          KBUILD_BUILD_USER=GH-Actions \
+          KBUILD_BUILD_HOST=Kernel-Builder
+
+    - name: Package Artifacts
+      run: |
+        mkdir -p artifacts
+        cp kernel_platform/msm-kernel/out/arch/arm64/boot/Image.gz artifacts/
+        cp kernel_platform/msm-kernel/out/arch/arm64/boot/dtbo.img artifacts/
+        cp kernel_platform/msm-kernel/out/vmlinux artifacts/
+        tar czvf symbols.tgz kernel_platform/msm-kernel/out/System.map
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: kernel-build-$(date +%Y%m%d%H%M)
+        path: |
+          artifacts/*
+          symbols.tgz
